@@ -108,6 +108,16 @@ class EvidenceAssociation(db.Model):
             db.session.commit()
         return True
 
+# added to support file upload along with evidence creation
+class EvidenceFile(db.Model):
+    __tablename__ = 'evidence_file'
+    id = db.Column(db.Integer(), primary_key=True)
+    file = db.Column(db.Binary, default=None)
+    name = db.Column(db.String, default="upload_file")
+    evidence_id = db.Column(db.Integer(), db.ForeignKey('evidence.id', ondelete='CASCADE'))
+    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    date_updated = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
 class PolicyAssociation(LogMixin, db.Model):
     __tablename__ = 'policy_associations'
     id = db.Column(db.Integer(), primary_key=True)

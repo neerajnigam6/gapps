@@ -1,4 +1,4 @@
-from flask import jsonify, request, current_app,abort
+from flask import jsonify, request, current_app,abort, make_response
 from . import api
 from app import models, db
 from flask_login import login_required,current_user
@@ -79,6 +79,44 @@ def update_evidence(id):
     evidence.content = payload["content"]
     db.session.commit()
     return jsonify(evidence.as_dict())
+
+@api.route('/evidence/<int:id>/files', methods=["GET"])
+@roles_required("admin")
+def evidence_files_list(id):
+    evidence_files = models.EvidenceFile.query.filter(models.EvidenceFile.evidence_id==id).all()
+    file_ids = [i.id for i in evidence_files]
+    return jsonify({"files":file_ids})
+
+@api.route('/evidence/<int:id>/add_file', methods=["POST"])
+@roles_required("admin")
+def evidence_files_add(id):
+    file_data = request.form.get("file")
+    filename = request.form.get("filename")
+    evidence_file = models.EvidenceFile(file=file_data, name=filename, evidence_id=id)
+    db.session.add(evidence_file)
+    db.session.commit()
+    return jsonify({"message":"ok"})
+
+@api.route('/evidence/file/<int:id>', methods=["GET"])
+@roles_required("admin")
+def evidence_dowload_file_by_id(id):
+    file_data = models.EvidenceFile.query.get(id)
+    if(file_data):
+        response = make_response(file_data.file)
+        response.headers.set('Content-Disposition', 'attachment', filename=file_data.name)
+        response.headers.set("Content-Type","binary/octact-stream")
+        return response
+    return jsonify({"message":"file not found"}), 404
+
+@api.route('/evidence/file/<int:id>', methods=["DELETE"])
+@roles_required("admin")
+def evidence_file_delete(id):
+    file_d = models.EvidenceFile.query.get(id)
+    if file_d:
+        db.session.delete(file_d)
+        db.session.commit()
+        return jsonify({"message":"ok"})
+    return jsonify({"message":"file not found"}), 404
 
 @api.route('/evidence/<int:id>', methods=['DELETE'])
 @roles_required("admin")
